@@ -1,0 +1,29 @@
+.node {
+  cursor: pointer;
+}
+
+.node:hover, .node--leaf:hover {
+  stroke: orangered;
+  stroke-width: 1px;
+}
+
+.column {
+  max-width: 960px;
+  display: block;
+  margin: 0 auto;
+}
+
+text {
+  font: 24px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.node--root,
+.node--leaf {
+  pointer-events: all;
+}
+
+.label {
+  pointer-events: none;
+}
