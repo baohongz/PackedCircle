@@ -1,145 +1,229 @@
 <!DOCTYPE html>
 <html>
 
-  <head>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.5.0/dist/svg-pan-zoom.js"></script> 
-  </head>
+<head>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.5.0/dist/svg-pan-zoom.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+</head>
 
-  <body>
-  <div id=container class=column>
-    <script src="data.js"></script>
-	<script type="text/javascript">
+<style>
+	.node {
+		cursor: pointer;
+	}
+	
+	.node--leaf:hover {
+		stroke:orangered;
+		stroke-width:1px;
+	}
+	
+	.column {
+		max-width: 960px;
+		display: block;
+		margin: 0 auto;
+	}
+	
+	text {
+		font: 24px "Helvetica Neue", Helvetica, Arial, sans-serif;
+		text-anchor: middle;
+		pointer-events: none;
+	}
+	
+	.node--root, .node--leaf {
+		pointer-events: all;
+	}
+	
+	.label {
+		pointer-events: none;
+	}
+</style>
 
-		var circleFill = function(d) {
-		  if (d['color']) {
-		    return d.color;
-		  } else {
-		    return d.children ? color(d.depth) : '#FFF';
-		  }
+<body>
+<div id=plotSection class=column>
+<script src="newdata.js"></script>
+<script type="text/javascript">
+
+	var circleFill = function(d) {
+		if (d['color']) {
+			return d.color;
+		} else {
+			return d.children ? color(d.depth) : '#FFF';
 		}
-
-		var myzoom = 1;
-		var margin = 0,
-		  diameter = 900;
-		
-		var color = d3.scale.linear()
-		  .domain([-1, 18])
-		  .range(["hsl(0,0%,100%)", "hsl(228,30%,40%)"])
-		  .interpolate(d3.interpolateHcl);
-		
-		var pack = d3.layout.pack()
-		  .padding(2)
-		  .size([diameter - margin, diameter - margin])
-		  .value(function(d) {
-		    return d.size;
-		  })
-		
-		var svg = d3.select("#container").append("svg")
-		  .attr("id", "packedCircle1")
-		  .attr("width", diameter - margin)
-		  .attr("height", diameter - margin)
-		  .append("g")
-		  .attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
-		
-		var focus = root,
-		  nodes = pack.nodes(root),
-		  view;
-		
-		var circle = svg.selectAll("circle")
-		  .data(nodes)
-		  .enter().append("circle")
-		  .attr("class", function(d) {
-		     d.class = d.parent ? d.children ? "node" : "node node--leaf" : "node node--root";
-		     return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root";
-		  })
-		  .style("fill", circleFill)
-		  .attr("r", function(d) {
-		    return d.r;
-		  })
-		  .attr("id", function(d) {
-		    return d.name;
-		  })
-		// Baohong  
-		//  .on("click", function(d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); })
-		  .on("click", function(d) { alert(d.name); })
+	}
+	
+	var myzoom = 1;
+	var margin = 0, diameter = 960, labelMargin = 200;
+	
+	var color = d3.scale.linear()
+		.domain([-1, 18])
+		.range(["hsl(0,0%,100%)", "hsl(228,30%,40%)"])
+		.interpolate(d3.interpolateHcl);
+	
+	var pack = d3.layout.pack()
+		.padding(2)
+		.size([diameter - margin, diameter - margin])
+		.value(function(d) { return d.size; })
+	
+	var svg = d3.select("#plotSection").append("svg")
+		.attr("id", "packedCircle1")
+		.attr("width", diameter - margin)
+		.attr("height", diameter - margin)
+		.append("g")
+		.attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
+	
+	var focus = root, nodes = pack.nodes(root), view;
+	
+	$("#plotSection").on( "mouseover", ".node--leaf", function(){
+		$(this).css('stroke-width', 1/myzoom + 'px');
+	});
+	
+	var circle = svg.selectAll("circle")
+		.data(nodes)
+		.enter().append("circle")
+		.attr("class", function(d) {
+			d.class = d.parent ? d.children ? "node" : "node node--leaf" : "node node--root";
+			return d.class;
+		})
+		.style("fill", circleFill)
+		.attr("r", function(d) {
+			return d.r;
+		})
+		.attr("id", function(d) {
+			var sn;
+			sn = d.name.replace(/[^A-Za-z0-9]/g, "");
+			sn=sn.replace(/^[0-9]/,"");
+			return sn;
+		})
+// Baohong  
+//  	.on("click", function(d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); })
+//  	.on("click", function(d) { alert(d.name); })
 		;
-		
-		circle.append("svg:title")
-		  .text(function(d) {
-		    return d.name;
-		  })
-		
-		var text = svg.selectAll("text")
-		  .data(nodes)
-		  .enter().append("text")
-		  .attr("class", "label")
-		//  .style("fill-opacity", function(d) { return d.parent === root ? 1 : 0; })
-		//  .style("display", function(d) { return d.parent === root ? null : "none"; })
-		  .style("display", function(d) { 
+	
+	circle.append("svg:title")
+		.text(function(d) { return d.name; })
+	
+	var text = svg.selectAll("text")
+		.data(nodes)
+		.enter().append("text")
+		.attr("class", "label")
+//  	.style("fill-opacity", function(d) { return d.parent === root ? 1 : 0; })
+//  	.style("display", function(d) { return d.parent === root ? null : "none"; })
+		.style("display", function(d) { 
 			return d.class === "node node--leaf" ? null : "none";
-		  })
-		  .text(function(d) {
-		    return d.name;
-		  })
-		  .style("font-size", function(d) { d.fontsize = Math.min(20, Math.min(2 * d.r, (2 * d.r ) / this.getComputedTextLength() * 24));  return d.fontsize + "px"; })
-		  .attr("dy", ".35em");
+		})
+		.text(function(d) {
+			d.fontsize=d.tsize;
+			d.id = d.name.replace(/[^A-Za-z0-9]/g, "");
+			d.id = d.id.replace(/^[0-9]/,"");
+			return d.name;
+		})
+// Baohong: setting "font-size" here is slow !!!
+//  	.style("font-size", function(d) { d.fontsize=d.tsize; return d.tsize + "px"; })
+		.attr("dy", ".35em");
+	
+	var node = svg.selectAll("circle,text");;
+	
+	d3.select("body")
+		.style("background", color(-1))
+//  	.on("click", function() { zoom(root); });
+	
+	
+	svgPanZoom('#packedCircle1', {
+		zoomEnabled:true,
+		minZoom:0.1,
+		maxZoom:100,
+		zoomScaleSensitivity:0.5,
+		fit:true,
+		center:true,
+		mouseWheelZoomEnabled:false,
+		controlIconsEnabled:true,
+		onZoom:function(){
+			myzoom=this.getZoom();
+			showText(myzoom);
+		},
+		onPan:function(){
+			showText(myzoom);
+		}
+	});
+	
+///////////////////////////////
+// Baohong: find memebers in main circles
+	var childMap = {};
+	var group;
+	
+	function allDescendants (node) {
+		if (node.children === undefined) {
+			childMap[node.id] = group;
+			return;
+		}
 		
-		var node = svg.selectAll("circle,text");;
+		childMap[node.id] = group;
+		for (var i = 0; i < node.children.length; i++) {
+			var child = node.children[i];
+			allDescendants(child);
+		}
+	}
+	
+	for (var j=0; j < root.children.length; j++) {
+		var c = root.children[j];
+		group = c.id;
+		allDescendants(c);
+	}
+	
+	function showText(zoomScale) {
+// Baohong: get locations of the main circles
+		var boxes = {};
 		
-		d3.select("body")
-		  .style("background", color(-1))
-		//  .on("click", function() { zoom(root); });
+		var xoffset = d3.select("#plotSection").node().getBoundingClientRect().x;
 		
-		zoomTo([root.x, root.y, root.r * 2 + margin]);
+		for (var j=0; j < root.children.length; j++) {
+			var c = root.children[j];
+			group = c.id;
+			boxes[group] = svg.select('circle#'+group).node().getBoundingClientRect();
+			boxes[group].x -= xoffset;
+		}
 		
-        svgPanZoom('#packedCircle1', {
-                zoomEnabled:true,
-                minZoom:0.1,
-				maxZoom: 100,
-				zoomScaleSensitivity: .5,
-                fit:true,
-	            center:true,
-				mouseWheelZoomEnabled:false,
-	            controlIconsEnabled:true,
-				beforeZoom: function() {
-					showText(this.getZoom());
-				},
-//				onPan: function() { showText(this.getZoom()); }
-        });
-
-		function showText(zoomScale) {
-			text.style("display", function(d) {
-
-// Baohong: trying to not display labels out of canvas, but it is too slow
-//				this.style.display="";
-//				var bx = this.getBoundingClientRect();
-//				if (bx.x+bx.width < 10 || bx.y+bx.height < 10 || bx.x > diameter-10 || bx.y > diameter-10) {
-//					return "none";
-//				} 
-
-				if (d.fontsize*zoomScale < 6) {
-					return "none";
+		text.style("display", function(d) {
+		// Baohong: only display labels if the main circle is in the view
+		if (childMap[d.id] === undefined) {
+			return "none";
+		}
+		
+		var bx = boxes[childMap[d.id]];
+		
+		if (bx.x+bx.width < labelMargin || bx.y+bx.height < labelMargin || bx.x > diameter -labelMargin || bx.y>diameter-labelMargin) {
+			return "none";
+		} 
+		
+		
+		if (d.fontsize*zoomScale < 6) {
+			return "none";
+		} else {
+			if (d.class === "node node--leaf") {
+				if (this.style.fontSize === "") {
+					this.style.fontSize = d.fontsize+"px";
 				} else {
-					return d.class === "node node--leaf" ? null : "none";
+					return null;
 				}
-			});
-		}
-
-		showText(myzoom);
-		
-		function zoomTo(v) {
-		  var k = diameter / v[2];
-		  view = v;
-		  node.attr("transform", function(d) {
-		    return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")";
-		  });
-		  circle.attr("r", function(d) {
-		    return d.r * k;
-		  });
-		}
-	</script>
-  </div>
-  </body>
+			} else {
+				return "none";
+			}
+		}});
+	}
+////////////////////////////////
+	
+	zoomTo([root.x, root.y, root.r * 2 + margin]);
+	showText(myzoom);
+	
+	function zoomTo(v) {
+		var k = diameter / v[2];
+		view = v;
+		node.attr("transform", function(d) {
+			return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")";
+		});
+		circle.attr("r", function(d) { return d.r * k; });
+	}
+</script>
+</div>
+</body>
 </html>
