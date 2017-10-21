@@ -1,10 +1,13 @@
-<!DOCTYPE html>
 <html>
-
 <head>
+    <title>Zoomable Packed Circles With Links</title>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.5.0/dist/svg-pan-zoom.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    
+    <script type='text/javascript' src="dist/circle-text.js"></script>
+    <script type='text/javascript' src='dist/d3.tip.js'></script>
+
 </head>
 
 <style>
@@ -26,15 +29,75 @@
 	text {
 		font: 24px "Helvetica Neue", Helvetica, Arial, sans-serif;
 		text-anchor: middle;
+		-webkit-user-select: none;
+		-moz-user-select: none;
+		-ms-user-select: none;
+		user-select: none;
 		pointer-events: none;
 	}
 	
-	.node--root, .node--leaf {
+	title {
+		color: #999;
+	}
+		
+	
+	.node--root,
+	.node--leaf {
 		pointer-events: all;
 	}
 	
 	.label {
 		pointer-events: none;
+	}
+	
+	.arc-text{
+		font-size: 10px !important;
+		color:#999 !important;	
+		opacity: 1;
+	}
+	
+	.arc-path {
+		visibility: hidden;
+	}
+
+	a:link {
+		color: lightblue;
+	}
+	
+	a:visited {
+		color: lightblue;
+	}
+	
+	
+	.d3-tip {
+		line-height: 1;
+		font-weight: bold;
+		padding: 12px;
+		background: rgba(0, 0, 0, 0.8);
+		color: #fff;
+		border-radius: 2px;
+		-webkit-transition: opacity 0.3s; /* For Safari 3.1 to 6.0 */
+		transition: opacity 0.3s;	 
+	}
+	
+	/* Creates a small triangle extender for the tooltip */
+	.d3-tip:after {
+		box-sizing: border-box;
+		display: inline;
+		font-size: 10px;
+		width: 100%;
+		line-height: 1;
+		color: rgba(0, 0, 0, 0.8);
+		content: "\25BC";
+		position: absolute;
+		text-align: center;
+	}
+	
+	/* Style northward tooltips differently */
+	.d3-tip.n:after {
+		margin: -1px 0 0 0;
+		top: 100%;
+		left: 0;
 	}
 </style>
 
@@ -42,7 +105,6 @@
 <div id=plotSection class=column>
 <script src="newdata.js"></script>
 <script type="text/javascript">
-
 	var circleFill = function(d) {
 		if (d['color']) {
 			return d.color;
@@ -51,8 +113,36 @@
 		}
 	}
 	
+	var margin = 0, diameter = 960, arcFontSize = 10, labelMargin = 200;
 	var myzoom = 1;
-	var margin = 0, diameter = 960, labelMargin = 200;
+	var circleText = d3.circleText()
+		.radius(function(d) {
+			return d.r - 5;
+		})
+		.value(function(d){
+			
+			var textLength 		= d.name.length * arcFontSize;
+			var circumference 	= 2 * d.r  * 3.14;
+			var maxLength		= circumference * 0.8;
+			
+			
+			if (2*d.r <= 5 * arcFontSize){
+				return '';
+			} else if (maxLength > textLength){
+				return d.name;
+			} else {
+				
+				var stringCount = 0;
+				
+				stringCount = Math.floor(maxLength/textLength * d.name.length);
+				var newText		= d.name.substr(0, stringCount) + '...';
+				
+				return newText;	
+			}
+		})
+		.method('align')
+		.spacing('exact');
+
 	
 	var color = d3.scale.linear()
 		.domain([-1, 18])
@@ -70,6 +160,32 @@
 		.attr("height", diameter - margin)
 		.append("g")
 		.attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
+
+	// Init tooltip
+    var tipCirclePack = d3.tip()
+		.attr('class', 'd3-tip')
+		.offset([-10, 0])
+		.html(function(d) {
+			var content = '';
+			
+			if (d.children) {
+				if (d.parent){
+					content += "<div><strong>Therapeutic Class</strong>: " + d.name + "</div>";
+				}
+				
+			} else if (!d.children) {
+				
+				var URL = "app_disease_review.php?DISEASE_NAME=" + encodeURI(d.name);
+				
+				content += "<div><strong>Disease</strong>: " + d.name + "</div>";
+				content += "<div><strong>Therapeutic Class</strong>: " + d.parent.name + "</div>";
+				content += "<div><strong># of Biomarker</strong>: " + d.size + "</div>";
+				content += "<div><a href='" + URL + "' target='_blank'>View Disease Details</a></div>";
+			}
+			
+			return content;
+		});
+	svg.call(tipCirclePack);
 	
 	var focus = root, nodes = pack.nodes(root), view;
 	
@@ -94,6 +210,30 @@
 			sn=sn.replace(/^[0-9]/,"");
 			return sn;
 		})
+		.on('mouseover', function (d) {
+			if (d.children) {
+				if (d.parent){
+					tipCirclePack.show(d);
+				}
+			} else if (!d.children) {
+				tipCirclePack.show(d);
+			}
+		})
+		.on('mouseout', function (d) {
+			if (d.depth<2) {
+				tipCirclePack.hide(d);
+			} else {
+				tipCirclePack.show(d);
+			}
+		})
+		.on("dblclick", function(d) {
+			var therapeutic_class 	= d.therapeutic_class;
+			var disease_name 		= d.disease_name;
+			if (typeof(disease_name) != "undefined"){
+				alert(disease_name);
+//				window.open("app_disease_review.php?DISEASE_NAME=" + encodeURI(disease_name), '_blank');
+			}
+		});
 // Baohong  
 //  	.on("click", function(d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); })
 //  	.on("click", function(d) { alert(d.name); })
@@ -120,6 +260,23 @@
 // Baohong: setting "font-size" here is slow !!!
 //  	.style("font-size", function(d) { d.fontsize=d.tsize; return d.tsize + "px"; })
 		.attr("dy", ".35em");
+
+	var gTexts = svg.selectAll('g.label')
+		.data(nodes) //Returns names 
+		.enter()
+		.append('g')
+		.classed('label', true)
+		.attr('transform', function(d) {
+			if (!!d.children){
+				var transform 	= $("#" + d.id).attr('transform');
+				return transform;
+			}
+		});
+					
+	gTexts.filter(function(d) { //Only put on 'parent' circles
+			return !!d.children;
+		})
+		.call(circleText);
 	
 	var node = svg.selectAll("circle,text");;
 	
@@ -145,6 +302,7 @@
 			showText(myzoom);
 		}
 	});
+
 	
 ///////////////////////////////
 // Baohong: find memebers in main circles
@@ -182,33 +340,36 @@
 			boxes[group] = svg.select('circle#'+group).node().getBoundingClientRect();
 			boxes[group].x -= xoffset;
 		}
+
+		gTexts.style("opacity", 1/myzoom);
 		
 		text.style("display", function(d) {
 		// Baohong: only display labels if the main circle is in the view
-		if (childMap[d.id] === undefined) {
-			return "none";
-		}
-		
-		var bx = boxes[childMap[d.id]];
-		
-		if (bx.x+bx.width < labelMargin || bx.y+bx.height < labelMargin || bx.x > diameter -labelMargin || bx.y>diameter-labelMargin) {
-			return "none";
-		} 
-		
-		
-		if (d.fontsize*zoomScale < 6) {
-			return "none";
-		} else {
-			if (d.class === "node node--leaf") {
-				if (this.style.fontSize === "") {
-					this.style.fontSize = d.fontsize+"px";
-				} else {
-					return null;
-				}
-			} else {
+			if (childMap[d.id] === undefined) {
 				return "none";
 			}
-		}});
+	
+			var bx = boxes[childMap[d.id]];
+			
+			if (bx.x+bx.width < labelMargin || bx.y+bx.height < labelMargin || bx.x > diameter -labelMargin || bx.y>diameter-labelMargin) {
+				return "none";
+			} 
+			
+			
+			if (d.fontsize*zoomScale < 6) {
+				return "none";
+			} else {
+				if (d.class === "node node--leaf") {
+					if (this.style.fontSize === "") {
+						this.style.fontSize = d.fontsize+"px";
+					} else {
+						return null;
+					}
+				} else {
+					return "none";
+				}
+			}
+		});
 	}
 ////////////////////////////////
 	
@@ -224,6 +385,7 @@
 		circle.attr("r", function(d) { return d.r * k; });
 	}
 </script>
+
 </div>
 </body>
 </html>
