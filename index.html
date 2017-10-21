@@ -174,13 +174,12 @@
 				}
 				
 			} else if (!d.children) {
-				
 				var URL = "app_disease_review.php?DISEASE_NAME=" + encodeURI(d.name);
 				
 				content += "<div><strong>Disease</strong>: " + d.name + "</div>";
 				content += "<div><strong>Therapeutic Class</strong>: " + d.parent.name + "</div>";
 				content += "<div><strong># of Biomarker</strong>: " + d.size + "</div>";
-				content += "<div><a href='" + URL + "' target='_blank'>View Disease Details</a></div>";
+//				content += "<div><a href='" + URL + "' target='_blank'>View Disease Details</a></div>";
 			}
 			
 			return content;
@@ -230,7 +229,8 @@
 			var therapeutic_class 	= d.therapeutic_class;
 			var disease_name 		= d.disease_name;
 			if (typeof(disease_name) != "undefined"){
-				window.open("app_disease_review.php?DISEASE_NAME=" + encodeURI(disease_name), '_blank');
+				alert(disease_name);
+//				window.open("app_disease_review.php?DISEASE_NAME=" + encodeURI(disease_name), '_blank');
 			}
 		});
 // Baohong  
